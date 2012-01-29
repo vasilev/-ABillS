@@ -388,6 +388,45 @@ sub message_add {
 
   $self->{MSG_ID} = $self->{INSERT_ID};
   
+### OTRS interop PoC
+use SOAP::Lite( 'autodispatch', proxy => 'https://127.0.0.1:9443/otrs/rpc.pl' );
+my $User = 'soapuser';
+my $Pw   = 'soappassword';
+my $RPC = Core->new();
+my %TicketData = (
+    Title        => $DATA{SUBJECT},
+    QueueID      => 15,
+    Lock         => 'unlock',
+    Priority     => '3 normal',
+    State        => 'open',
+    CustomerID   => 'test',
+    CustomerUser => 'customer@example.com',
+    OwnerID      => 6,
+    UserID       => 1,
+); 
+my $TicketID = $RPC->Dispatch( $User, $Pw, 'TicketObject', 'TicketCreate', %TicketData => 1 );
+my %ArticleData = (
+    TicketID         => $TicketID,
+    ArticleType      => 'phone',
+    SenderType       => 'agent',
+    From             => 'root', 
+    To               => 'customer',
+    Cc               => '',
+    ReplyTo          => '',
+    Subject          => $DATA{SUBJECT},
+    Body             => $DATA{MESSAGE},
+    MessageID        => '',
+    Charset          => 'UTF-8',
+    HistoryType      => 'EmailCustomer',
+    HistoryComment   => 'HistoryComment',
+    UserID           => 1,
+    NoAgentNotify    => 0, 
+    MimeType         => 'text/plain',
+    Loop             => 0,
+);
+my $ArticleID = $RPC->Dispatch($User, $Pw, 'TicketObject', 'ArticleSend', %ArticleData =>1);
+### end OTRS interop PoC
+  
 	return $self;
 }
 
